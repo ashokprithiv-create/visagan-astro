@@ -1,0 +1,15 @@
+export const CONTACT_INFO = {
+  phoneNumber: '+91 9789747397',
+  displayPhone: '+91 9789747397',
+  rawPhone: '9789747397',
+  whatsappNumber: '9789747397',
+  whatsappNumberClean: '919789747397',
+  whatsappDisplay: '+91 9789747397',
+  whatsappUrl: 'https://wa.me/919789747397',
+  whatsappLink: 'https://wa.me/919789747397',
+  email: 'shreevisagan@gmail.com',
+  workingHoursEn: 'Mon – Sun: 09:00 AM – 08:30 PM IST',
+  workingHoursTa: 'திங்கள் – ஞாயிறு: காலை 09:00 – இரவு 08:30 IST',
+  addressEn: 'Global Online Video Consultations & Chennai, Tamil Nadu, India',
+  addressTa: 'உலகளாவிய நேரடி வீடியோ ஆலோசனை & சென்னை, தமிழ்நாடு, இந்தியா',
+};

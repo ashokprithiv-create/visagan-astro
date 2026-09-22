@@ -1,0 +1,6 @@
+{
+  "name": "Visagan Astro — Astrology Solutions & Life Guidance",
+  "description": "Professional Vedic astrology services providing clarity and direction: birth-chart readings, marriage compatibility, career guidance, financial insights, relationship harmony, and spiritual remedies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
