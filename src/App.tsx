@@ -9,6 +9,7 @@ import { TestimonialsSection } from './components/TestimonialsSection';
 import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { ConsultationBookingModal } from './components/ConsultationBookingModal';
+import { AskVisaganChat } from './components/AskVisaganChat';
 import { ServiceId } from './types';
 import { Sparkles, MessageSquare } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
@@ -123,6 +124,9 @@ export default function App() {
         initialServiceId={preselectedService}
         onClose={handleCloseBooking}
       />
+
+      {/* Ask Visagan Chatbot */}
+      <AskVisaganChat />
 
     </div>
   );
