@@ -8,14 +8,6 @@ function askVisaganChatApi(apiKey: string | undefined): Plugin {
   return {
     name: 'ask-visagan-chat-api',
     configureServer(server) {
-      if (!apiKey) {
-        server.middlewares.use('/api/chat', (_req, res) => {
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: 'GEMINI_API_KEY is not set. Add it to .env and restart the dev server.' }));
-        });
-        return;
-      }
       server.middlewares.use('/api/chat', createChatHandler(apiKey));
     },
   };

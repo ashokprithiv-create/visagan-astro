@@ -25,13 +25,18 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
-export function createChatHandler(apiKey: string) {
-  const ai = new GoogleGenAI({ apiKey });
+export function createChatHandler(apiKey: string | undefined) {
+  const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
   const fullSystemInstruction = `${SYSTEM_PROMPT}\n\n---\n\n## Retrieved knowledge-base chunks\n\n${KNOWLEDGE_BASE}`;
 
   return async function chatHandler(req: IncomingMessage, res: ServerResponse) {
     if (req.method !== 'POST') {
       sendJson(res, 405, { error: 'Method not allowed' });
+      return;
+    }
+
+    if (!ai) {
+      sendJson(res, 500, { error: 'GEMINI_API_KEY is not set on the server.' });
       return;
     }
 
