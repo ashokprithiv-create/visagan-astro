@@ -39,6 +39,32 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Gemini occasionally returns 503 UNAVAILABLE ("high demand") — Google's own
+// message says these are usually temporary, so retry a couple of times with
+// a short backoff before giving up.
+async function generateContentWithRetry(
+  ai: GoogleGenAI,
+  params: Parameters<GoogleGenAI['models']['generateContent']>[0]
+) {
+  const maxAttempts = 3;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      if (status !== 503 || attempt === maxAttempts) {
+        throw err;
+      }
+      await sleep(500 * attempt);
+    }
+  }
+  throw new Error('unreachable');
+}
+
 export function createChatHandler(apiKey: string | undefined) {
   const fullSystemInstruction = `${SYSTEM_PROMPT}\n\n---\n\n## Retrieved knowledge-base chunks\n\n${KNOWLEDGE_BASE}`;
   let ai: GoogleGenAI | null = null;
@@ -82,7 +108,7 @@ export function createChatHandler(apiKey: string | undefined) {
         tools: [{ functionDeclarations: [marriageMatchFunctionDeclaration] }],
       };
 
-      let response = await ai.models.generateContent({
+      let response = await generateContentWithRetry(ai, {
         model: 'gemini-3.6-flash',
         contents,
         config: generationConfig,
@@ -111,7 +137,7 @@ export function createChatHandler(apiKey: string | undefined) {
           toolResult
         );
 
-        response = await ai.models.generateContent({
+        response = await generateContentWithRetry(ai, {
           model: 'gemini-3.6-flash',
           contents: [...contents, modelTurn, { role: 'user', parts: [responsePart] }],
           config: generationConfig,
@@ -125,10 +151,7 @@ export function createChatHandler(apiKey: string | undefined) {
       sendJson(res, 200, { reply });
     } catch (err) {
       console.error('[Ask Visagan] chat handler error:', err);
-      sendJson(res, 500, {
-        error: 'Something went wrong. Please try again in a moment.',
-        debug: err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
-      });
+      sendJson(res, 500, { error: 'Something went wrong. Please try again in a moment.' });
     }
   };
 }
