@@ -1,4 +1,4 @@
-import { KundliResult, CompatibilityResult, PanchangInfo, Testimonial } from '../types';
+import { KundliResult, CompatibilityResult, PanchangInfo, Testimonial } from '../types.js';
 
 export interface RashiDetail {
   id: number;

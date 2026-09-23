@@ -1,7 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import type { IncomingMessage, ServerResponse } from 'http';
-import { SYSTEM_PROMPT } from './systemPrompt';
-import { KNOWLEDGE_BASE } from './knowledgeBase';
+import { SYSTEM_PROMPT } from './systemPrompt.js';
+import { KNOWLEDGE_BASE } from './knowledgeBase.js';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -86,12 +86,7 @@ export function createChatHandler(apiKey: string | undefined) {
       sendJson(res, 200, { reply });
     } catch (err) {
       console.error('[Ask Visagan] chat handler error:', err);
-      // TEMP: surfacing the real error message for debugging the Vercel
-      // FUNCTION_INVOCATION_FAILED crash. Revert to a generic message once diagnosed.
-      sendJson(res, 500, {
-        error: 'Something went wrong. Please try again in a moment.',
-        debug: err instanceof Error ? err.message : String(err),
-      });
+      sendJson(res, 500, { error: 'Something went wrong. Please try again in a moment.' });
     }
   };
 }

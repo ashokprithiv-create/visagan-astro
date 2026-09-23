@@ -1,4 +1,4 @@
-import { ServiceDetail } from '../types';
+import { ServiceDetail } from '../types.js';
 
 export const SERVICES_LIST: ServiceDetail[] = [
   {

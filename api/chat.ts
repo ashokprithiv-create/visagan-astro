@@ -1,4 +1,4 @@
-import { createChatHandler } from '../server/chatHandler';
+import { createChatHandler } from '../server/chatHandler.js';
 
 const handler = createChatHandler(process.env.GEMINI_API_KEY);
 

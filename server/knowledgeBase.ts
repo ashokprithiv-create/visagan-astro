@@ -1,6 +1,6 @@
-import { CONTACT_INFO } from '../src/data/contactInfo';
-import { SERVICES_LIST } from '../src/data/servicesData';
-import { FAQS } from '../src/data/astrologyData';
+import { CONTACT_INFO } from '../src/data/contactInfo.js';
+import { SERVICES_LIST } from '../src/data/servicesData.js';
+import { FAQS } from '../src/data/astrologyData.js';
 
 function buildKnowledgeBase(): string {
   const sections: string[] = [];
