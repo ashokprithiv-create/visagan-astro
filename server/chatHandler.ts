@@ -8,7 +8,15 @@ interface ChatMessage {
   text: string;
 }
 
-function readBody(req: IncomingMessage): Promise<string> {
+function readBody(req: IncomingMessage & { body?: unknown }): Promise<string> {
+  // On Vercel's Node.js runtime, the platform already buffers the request
+  // and exposes the parsed result as req.body, draining the raw stream in
+  // the process — so 'data'/'end' never fire there. The local Vite dev
+  // middleware doesn't do this, so we still fall back to reading the stream.
+  if (req.body !== undefined) {
+    return Promise.resolve(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+  }
+
   return new Promise((resolve, reject) => {
     let data = '';
     req.on('data', (chunk) => {
