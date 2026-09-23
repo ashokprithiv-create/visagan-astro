@@ -34,8 +34,8 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
 }
 
 export function createChatHandler(apiKey: string | undefined) {
-  const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
   const fullSystemInstruction = `${SYSTEM_PROMPT}\n\n---\n\n## Retrieved knowledge-base chunks\n\n${KNOWLEDGE_BASE}`;
+  let ai: GoogleGenAI | null = null;
 
   return async function chatHandler(req: IncomingMessage, res: ServerResponse) {
     if (req.method !== 'POST') {
@@ -43,12 +43,19 @@ export function createChatHandler(apiKey: string | undefined) {
       return;
     }
 
-    if (!ai) {
+    if (!apiKey) {
       sendJson(res, 500, { error: 'GEMINI_API_KEY is not set on the server.' });
       return;
     }
 
     try {
+      // Constructing the client lazily, inside this try/catch, means a
+      // failure here (e.g. an SDK bundling issue) comes back as a JSON
+      // error instead of crashing the whole function invocation.
+      if (!ai) {
+        ai = new GoogleGenAI({ apiKey });
+      }
+
       const raw = await readBody(req);
       const body = JSON.parse(raw || '{}') as { messages?: ChatMessage[] };
       const messages = Array.isArray(body.messages) ? body.messages : [];
@@ -79,7 +86,12 @@ export function createChatHandler(apiKey: string | undefined) {
       sendJson(res, 200, { reply });
     } catch (err) {
       console.error('[Ask Visagan] chat handler error:', err);
-      sendJson(res, 500, { error: 'Something went wrong. Please try again in a moment.' });
+      // TEMP: surfacing the real error message for debugging the Vercel
+      // FUNCTION_INVOCATION_FAILED crash. Revert to a generic message once diagnosed.
+      sendJson(res, 500, {
+        error: 'Something went wrong. Please try again in a moment.',
+        debug: err instanceof Error ? err.message : String(err),
+      });
     }
   };
 }
