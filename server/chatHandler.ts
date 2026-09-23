@@ -1,7 +1,13 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, createPartFromFunctionResponse } from '@google/genai';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { SYSTEM_PROMPT } from './systemPrompt.js';
 import { KNOWLEDGE_BASE } from './knowledgeBase.js';
+import {
+  marriageMatchFunctionDeclaration,
+  runMarriageMatch,
+  MARRIAGE_MATCH_FUNCTION_NAME,
+  type MarriageMatchArgs,
+} from './marriageMatchTool.js';
 
 interface ChatMessage {
   role: 'user' | 'model';
@@ -70,14 +76,47 @@ export function createChatHandler(apiKey: string | undefined) {
         parts: [{ text: String(m.text ?? '') }],
       }));
 
-      const response = await ai.models.generateContent({
+      const generationConfig = {
+        systemInstruction: fullSystemInstruction,
+        temperature: 0.3,
+        tools: [{ functionDeclarations: [marriageMatchFunctionDeclaration] }],
+      };
+
+      let response = await ai.models.generateContent({
         model: 'gemini-3.6-flash',
         contents,
-        config: {
-          systemInstruction: fullSystemInstruction,
-          temperature: 0.3,
-        },
+        config: generationConfig,
       });
+
+      const call = response.functionCalls?.[0];
+
+      if (call && call.name === MARRIAGE_MATCH_FUNCTION_NAME) {
+        let toolResult: Record<string, unknown>;
+        try {
+          toolResult = runMarriageMatch(call.args as unknown as MarriageMatchArgs);
+        } catch {
+          toolResult = {
+            error:
+              'Could not calculate compatibility with the details given. Please double-check the dates, times, and places of birth.',
+          };
+        }
+
+        const modelTurn = response.candidates?.[0]?.content ?? {
+          role: 'model',
+          parts: [{ functionCall: call }],
+        };
+        const responsePart = createPartFromFunctionResponse(
+          call.id ?? call.name,
+          call.name,
+          toolResult
+        );
+
+        response = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: [...contents, modelTurn, { role: 'user', parts: [responsePart] }],
+          config: generationConfig,
+        });
+      }
 
       const reply =
         response.text ??
