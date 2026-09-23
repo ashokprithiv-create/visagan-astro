@@ -125,7 +125,10 @@ export function createChatHandler(apiKey: string | undefined) {
       sendJson(res, 200, { reply });
     } catch (err) {
       console.error('[Ask Visagan] chat handler error:', err);
-      sendJson(res, 500, { error: 'Something went wrong. Please try again in a moment.' });
+      sendJson(res, 500, {
+        error: 'Something went wrong. Please try again in a moment.',
+        debug: err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+      });
     }
   };
 }
