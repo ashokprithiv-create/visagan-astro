@@ -109,7 +109,7 @@ export function createChatHandler(apiKey: string | undefined) {
       };
 
       let response = await generateContentWithRetry(ai, {
-        model: 'gemini-3.6-flash',
+        model: 'gemini-flash-latest',
         contents,
         config: generationConfig,
       });
@@ -138,7 +138,7 @@ export function createChatHandler(apiKey: string | undefined) {
         );
 
         response = await generateContentWithRetry(ai, {
-          model: 'gemini-3.6-flash',
+          model: 'gemini-flash-latest',
           contents: [...contents, modelTurn, { role: 'user', parts: [responsePart] }],
           config: generationConfig,
         });
