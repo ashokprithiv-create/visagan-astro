@@ -179,9 +179,20 @@ async function runExchange(apiKey: string, model: string, messages: ORMessage[])
   return message?.content ?? FALLBACK_TEXT;
 }
 
+// Overall budget for the whole fallback loop. Vercel's function has a hard
+// maxDuration (see api/chat.ts) — this stops us from starting one more
+// model attempt we can't finish in time, so we return our own graceful
+// error instead of letting the platform kill the connection mid-flight.
+const OVERALL_BUDGET_MS = 45000;
+
 async function generateReplyWithFallback(apiKey: string, messages: ORMessage[]): Promise<string> {
+  const deadline = Date.now() + OVERALL_BUDGET_MS;
   let lastErr: unknown;
   for (const model of MODEL_FALLBACK_CHAIN) {
+    if (Date.now() > deadline) {
+      console.error('[Ask Visagan] overall fallback budget exceeded, stopping early');
+      break;
+    }
     try {
       return await runExchange(apiKey, model, messages);
     } catch (err) {
