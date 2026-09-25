@@ -59,6 +59,7 @@ interface ORMessage {
 
 interface ORResponse {
   choices?: { message: ORMessage }[];
+  error?: { message?: string; code?: number };
 }
 
 function readBody(req: IncomingMessage & { body?: unknown }): Promise<string> {
@@ -130,7 +131,22 @@ async function callOpenRouter(apiKey: string, model: string, messages: ORMessage
     throw err;
   }
 
-  return (await res.json()) as ORResponse;
+  const data = (await res.json()) as ORResponse;
+
+  // OpenRouter sometimes wraps a provider-side failure (e.g. the upstream
+  // model being overloaded) in an HTTP 200 with an `error` field instead of
+  // a non-2xx status, so res.ok alone isn't enough to detect it — without
+  // this check we'd silently treat the error envelope as a valid empty
+  // reply and never fall through to the next model.
+  if (data.error) {
+    const err = new Error(
+      `OpenRouter request to ${model} returned an error: ${data.error.message ?? JSON.stringify(data.error)}`
+    ) as Error & { status?: number };
+    err.status = data.error.code ?? 502;
+    throw err;
+  }
+
+  return data;
 }
 
 async function runExchange(apiKey: string, model: string, messages: ORMessage[]): Promise<string> {
