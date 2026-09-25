@@ -17,31 +17,32 @@ interface ChatMessage {
 // resilience chain (a model being down/overloaded/deprecated falls through
 // to the next one) — it does NOT multiply your request budget, since
 // OpenRouter's free tier is a single account-wide daily cap shared across
-// every free model. List: the top context-window free models as of Sep
-// 2026, excluding an unlabeled "stealth" preview model and a code-only
-// model that aren't good general-purpose fits.
+// every free model.
+//
+// Trimmed (2026-09-25 QA pass) to fewer, larger, well-established models
+// after a 30-question live test showed smaller/lesser-known free models
+// tend to ignore the system prompt's knowledge base and fall back to a
+// generic non-answer even when the information is available. Only
+// nvidia/qwen/google entries survived, plus openrouter/free as a last-
+// resort catch-all.
 const MODEL_FALLBACK_CHAIN = [
   'nvidia/nemotron-3-ultra-550b-a55b:free',
   'nvidia/nemotron-3.5-lightning:free',
-  'thinkingmachines/inkling:free',
-  'thinkingmachines/inkling-small:free',
-  'dots-studio/dots-3-note-preview:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
   'qwen/qwen3.8-27b:free',
   'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
-  'inclusionai/ling-3.0-flash-fin:free',
-  'inclusionai/ling-3.0-flash-sante:free',
-  'nvidia/nemotron-3-super-120b-a12b:free',
-  'nex-agi/nex-n2.5-pro:free',
-  'nex-agi/nex-n2.5-mini:free',
-  'poolside/laguna-s-2.1:free',
-  'poolside/laguna-xs-2.1:free',
-  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
   'openrouter/free',
 ];
 
+// Each individual OpenRouter call gets this long before we abort and move
+// to the next model — a hung/slow model shouldn't stall the whole chain.
+const PER_MODEL_TIMEOUT_MS = 10000;
+
+const CONTACT_LINE = 'Phone / WhatsApp: +91 9789747397 (https://wa.me/919789747397)';
+
 const FALLBACK_TEXT =
-  "I don't have that information available right now. A Visagan Astro representative will need to confirm it for you.";
+  `I don't have that information available right now. A Visagan Astro representative will need to confirm it for you. You can reach us directly — ${CONTACT_LINE}`;
 
 interface ORToolCall {
   id: string;
@@ -86,21 +87,39 @@ function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
 }
 
 async function callOpenRouter(apiKey: string, model: string, messages: ORMessage[]): Promise<ORResponse> {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://visagan-astro.vercel.app',
-      'X-Title': 'Ask Visagan',
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      tools: [marriageMatchToolSchema],
-      temperature: 0.3,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PER_MODEL_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://visagan-astro.vercel.app',
+        'X-Title': 'Ask Visagan',
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        tools: [marriageMatchToolSchema],
+        temperature: 0.3,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      const timeoutErr = new Error(`OpenRouter request to ${model} timed out after ${PER_MODEL_TIMEOUT_MS}ms`) as Error & {
+        status?: number;
+      };
+      timeoutErr.status = 408;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
