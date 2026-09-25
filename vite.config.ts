@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    plugins: [react(), tailwindcss(), askVisaganChatApi(env.GEMINI_API_KEY)],
+    plugins: [react(), tailwindcss(), askVisaganChatApi(env.OPENROUTER_API_KEY)],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

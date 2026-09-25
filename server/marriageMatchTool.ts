@@ -1,4 +1,3 @@
-import type { FunctionDeclaration } from '@google/genai';
 import { calculateVedicInsights, calculateMarriageCompatibility } from '../src/data/astrologyData.js';
 
 export const MARRIAGE_MATCH_FUNCTION_NAME = 'calculate_marriage_compatibility';
@@ -14,23 +13,28 @@ export interface MarriageMatchArgs {
   bridePob: string;
 }
 
-export const marriageMatchFunctionDeclaration: FunctionDeclaration = {
-  name: MARRIAGE_MATCH_FUNCTION_NAME,
-  description:
-    "Runs Visagan Astro's own traditional 10-Porutham Vedic marriage compatibility engine for a groom and bride and returns a compatibility percentage and verdict. Only call this once you have collected the date of birth, time of birth, and place of birth for BOTH the groom and the bride. Ask the customer for any of these fields that are still missing before calling this function.",
-  parametersJsonSchema: {
-    type: 'object',
-    properties: {
-      groomName: { type: 'string', description: "Groom's name. Use 'Groom' if the customer did not give one." },
-      groomDob: { type: 'string', description: "Groom's date of birth, formatted YYYY-MM-DD." },
-      groomTob: { type: 'string', description: "Groom's time of birth, 24-hour HH:MM." },
-      groomPob: { type: 'string', description: "Groom's place of birth (city)." },
-      brideName: { type: 'string', description: "Bride's name. Use 'Bride' if the customer did not give one." },
-      brideDob: { type: 'string', description: "Bride's date of birth, formatted YYYY-MM-DD." },
-      brideTob: { type: 'string', description: "Bride's time of birth, 24-hour HH:MM." },
-      bridePob: { type: 'string', description: "Bride's place of birth (city)." },
+// OpenAI-compatible tool schema (OpenRouter's chat completions API follows
+// the OpenAI function-calling format: { type: 'function', function: {...} }).
+export const marriageMatchToolSchema = {
+  type: 'function' as const,
+  function: {
+    name: MARRIAGE_MATCH_FUNCTION_NAME,
+    description:
+      "Runs Visagan Astro's own traditional 10-Porutham Vedic marriage compatibility engine for a groom and bride and returns a compatibility percentage and verdict. Only call this once you have collected the date of birth, time of birth, and place of birth for BOTH the groom and the bride. Ask the customer for any of these fields that are still missing before calling this function.",
+    parameters: {
+      type: 'object',
+      properties: {
+        groomName: { type: 'string', description: "Groom's name. Use 'Groom' if the customer did not give one." },
+        groomDob: { type: 'string', description: "Groom's date of birth, formatted YYYY-MM-DD." },
+        groomTob: { type: 'string', description: "Groom's time of birth, 24-hour HH:MM." },
+        groomPob: { type: 'string', description: "Groom's place of birth (city)." },
+        brideName: { type: 'string', description: "Bride's name. Use 'Bride' if the customer did not give one." },
+        brideDob: { type: 'string', description: "Bride's date of birth, formatted YYYY-MM-DD." },
+        brideTob: { type: 'string', description: "Bride's time of birth, 24-hour HH:MM." },
+        bridePob: { type: 'string', description: "Bride's place of birth (city)." },
+      },
+      required: ['groomDob', 'groomTob', 'groomPob', 'brideDob', 'brideTob', 'bridePob'],
     },
-    required: ['groomDob', 'groomTob', 'groomPob', 'brideDob', 'brideTob', 'bridePob'],
   },
 };
 
