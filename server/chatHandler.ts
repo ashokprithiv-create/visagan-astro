@@ -151,7 +151,12 @@ export function createChatHandler(apiKey: string | undefined) {
       sendJson(res, 200, { reply });
     } catch (err) {
       console.error('[Ask Visagan] chat handler error:', err);
-      sendJson(res, 500, { error: 'Something went wrong. Please try again in a moment.' });
+      const status = (err as { status?: number })?.status;
+      const message =
+        status === 429
+          ? "Ask Visagan has reached its daily usage limit and needs a moment to reset. Please try again shortly, or reach us directly below."
+          : 'Something went wrong. Please try again in a moment.';
+      sendJson(res, 500, { error: message });
     }
   };
 }
